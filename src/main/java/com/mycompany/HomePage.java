@@ -1,6 +1,7 @@
 package com.mycompany;
 
 import org.apache.wicket.Component;
+import org.apache.wicket.DelayedEventDispatcher;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.behavior.Behavior;
@@ -38,7 +39,7 @@ public class HomePage extends WebPage
 				System.out.println("c2 received: " + event.toString());
 				setDefaultModelObject(event.toString());
 				event.target.add(this);
-				new Payload("2: Cascade", event.target).send(this, getPage());
+				new Payload("2: Cascade", event.target, event.legacy).send(this, getPage());
 			}
 		});
 
@@ -52,12 +53,20 @@ public class HomePage extends WebPage
 			}
 		});
 
-		add(new AjaxLink<Component>("submit")
+		add(new AjaxLink<Component>("submit_legacy")
 		{
 			@Override
 			public void onClick(final AjaxRequestTarget target)
 			{
-				new Payload("1: Click", target).send(this, getPage());
+				new Payload("1: Click", target, true).send(this, getPage());
+			}
+		});
+		add(new AjaxLink<Component>("submit_new")
+		{
+			@Override
+			public void onClick(final AjaxRequestTarget target)
+			{
+				new Payload("1: Click", target, false).send(this, getPage());
 			}
 		});
 	}
@@ -102,17 +111,20 @@ public class HomePage extends WebPage
 	{
 		String            value;
 		AjaxRequestTarget target;
+		boolean           legacy;
 
-		Payload(final String value, final AjaxRequestTarget target)
+		Payload(final String value, final AjaxRequestTarget target, boolean legacy)
 		{
 			this.value = value;
 			this.target = target;
+			this.legacy = legacy;
 		}
 
 		public void send(Component component, final IEventSink sink)
 		{
 			System.out.println("Send " + value + " Event");
-			component.send(sink, Broadcast.BREADTH, this);
+			if( legacy ) component.send(sink, Broadcast.BREADTH, this);
+			else DelayedEventDispatcher.send(component, sink, Broadcast.BREADTH, this);
 		}
 
 		@Override
